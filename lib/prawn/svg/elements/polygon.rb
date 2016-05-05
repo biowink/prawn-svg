@@ -1,11 +1,11 @@
 class Prawn::SVG::Elements::Polygon < Prawn::SVG::Elements::Base
   def parse
     require_attributes('points')
-    @points = parse_points(attributes['points'])
+    # @points = parse_points(attributes['points'])
   end
 
   def apply
-    add_call 'polygon', *@points
+    # add_call 'polygon', *@points
   end
 
   def bounding_box

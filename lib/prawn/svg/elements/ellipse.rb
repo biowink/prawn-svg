@@ -4,10 +4,10 @@ class Prawn::SVG::Elements::Ellipse < Prawn::SVG::Elements::Base
   def parse
     require_attributes 'rx', 'ry'
 
-    @x = x(attributes['cx'] || "0")
-    @y = y(attributes['cy'] || "0")
-    @rx = distance(attributes['rx'], :x)
-    @ry = distance(attributes['ry'], :y)
+    @x = attributes['cx'].to_f || 0
+    @y = attributes['cy'].to_f || 0
+    @rx = attributes['rx'].to_f
+    @ry = attributes['ry'].to_f
 
     require_positive_value @rx, @ry
   end

@@ -1,9 +1,9 @@
 class Prawn::SVG::Elements::Line < Prawn::SVG::Elements::Base
   def parse
-    @x1 = x(attributes['x1'] || '0')
-    @y1 = y(attributes['y1'] || '0')
-    @x2 = x(attributes['x2'] || '0')
-    @y2 = y(attributes['y2'] || '0')
+    @x1 = attributes['x1'].to_f || 0
+    @y1 = attributes['y1'].to_f || 0
+    @x2 = attributes['x2'].to_f || 0
+    @y2 = attributes['y2'].to_f || 0
   end
 
   def apply

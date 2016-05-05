@@ -13,7 +13,7 @@ class Prawn::SVG::Elements::Image < Prawn::SVG::Elements::Base
   def parse
     require_attributes 'width', 'height'
 
-    raise SkipElementQuietly if state[:display] == "none"
+    # raise SkipElementQuietly if state[:display] == "none"
 
     @url = attributes['xlink:href'] || attributes['href']
     if @url.nil?
@@ -24,10 +24,10 @@ class Prawn::SVG::Elements::Image < Prawn::SVG::Elements::Base
       raise SkipElementError, "image tag xlink:href attribute must use http, https or data scheme"
     end
 
-    x = x(attributes['x'] || 0)
-    y = y(attributes['y'] || 0)
-    width = distance(attributes['width'])
-    height = distance(attributes['height'])
+    x = attributes['x'].to_f || 0
+    y = attributes['y'].to_f || 0
+    width = attributes['width'].to_f
+    height = attributes['height'].to_f
 
     raise SkipElementQuietly if width.zero? || height.zero?
     require_positive_value width, height

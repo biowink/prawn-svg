@@ -29,19 +29,19 @@ class Prawn::SVG::Elements::Path < Prawn::SVG::Elements::Base
   end
 
   def apply
-    add_call 'join_style', :bevel
+    # add_call 'join_style', :bevel
 
-    @commands.collect do |command, args|
-      if args && args.length > 0
-        point_to = [x(args[0]), y(args[1])]
-        if command == 'curve_to'
-          opts = {:bounds => [[x(args[2]), y(args[3])], [x(args[4]), y(args[5])]]}
-        end
-        add_call command, point_to, opts
-      else
-        add_call command
-      end
-    end
+    # @commands.collect do |command, args|
+    #   if args && args.length > 0
+    #     point_to = [x(args[0]), y(args[1])]
+    #     if command == 'curve_to'
+    #       opts = {:bounds => [[x(args[2]), y(args[3])], [x(args[4]), y(args[5])]]}
+    #     end
+    #     add_call command, point_to, opts
+    #   else
+    #     add_call command
+    #   end
+    # end
   end
 
   def bounding_box

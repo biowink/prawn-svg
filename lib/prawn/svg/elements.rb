@@ -14,7 +14,7 @@ module Prawn::SVG::Elements
     defs: Prawn::SVG::Elements::Container,
     clipPath: Prawn::SVG::Elements::Container,
     style: Prawn::SVG::Elements::Style,
-    text: Prawn::SVG::Elements::Text,
+    # text: Prawn::SVG::Elements::Text,
     line: Prawn::SVG::Elements::Line,
     polyline: Prawn::SVG::Elements::Polyline,
     polygon: Prawn::SVG::Elements::Polygon,

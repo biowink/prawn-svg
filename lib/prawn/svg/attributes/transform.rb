@@ -1,37 +1,48 @@
 module Prawn::SVG::Attributes::Transform
-  def parse_transform_attribute_and_call
+  :transform
+  :rotate
+  :scale
+  :matrix
+
+  class Transformation
+    attr_accessor :type, :numbers
+
+    def initialize type, numbers
+      @type = type
+      @numbers = numbers
+    end
+  end
+
+  def parse_transform_attribute
     return unless transform = attributes['transform']
 
     parse_css_method_calls(transform).each do |name, arguments|
       case name
       when 'translate'
-        x, y = arguments
-        add_call_and_enter name, distance(x.to_f, :x), -distance(y.to_f, :y)
-
+        x, y = arguments.collect {|argument| argument.to_f}
+        transforms.push Transformation.new(:translate, [x, y])
       when 'rotate'
         r, x, y = arguments.collect {|a| a.to_f}
         case arguments.length
         when 1
-          add_call_and_enter name, -r, :origin => [0, y('0')]
+          transforms.push Transformation.new(:rotate, [r])
         when 3
-          add_call_and_enter name, -r, :origin => [x(x), y(y)]
+          transforms.push Transformation.new(:scale, [r, x, y])
         else
           warnings << "transform 'rotate' must have either one or three arguments"
         end
-
       when 'scale'
         x_scale = arguments[0].to_f
         y_scale = (arguments[1] || x_scale).to_f
-        add_call_and_enter "transformation_matrix", x_scale, 0, 0, y_scale, 0, 0
 
+        transforms.push Transformation.new(:scale, [x_scale, y_scale])
       when 'matrix'
         if arguments.length != 6
           warnings << "transform 'matrix' must have six arguments"
-        else
-          a, b, c, d, e, f = arguments.collect {|argument| argument.to_f}
-          add_call_and_enter "transformation_matrix", a, -b, -c, d, distance(e, :x), -distance(f, :y)
         end
 
+        a, b, c, d, e, f = arguments.collect {|argument| argument.to_f}
+        transforms.push Transformation.new(:matrix, [a, b, c, d, e, f])
       else
         warnings << "Unknown transformation '#{name}'; ignoring"
       end

@@ -1,5 +1,5 @@
 class Prawn::SVG::Elements::Base
-  extend Forwardable
+  # extend Forwardable
 
   include Prawn::SVG::Attributes::Transform
   include Prawn::SVG::Attributes::Opacity
@@ -14,34 +14,48 @@ class Prawn::SVG::Elements::Base
   SkipElementError = Class.new(StandardError)
   MissingAttributesError = Class.new(SkipElementError)
 
-  attr_reader :document, :source, :parent_calls, :base_calls, :state, :attributes
-  attr_accessor :calls
+  attr_reader :source, :children, :attributes, :document, :transforms, :state
 
-  def_delegators :@document, :x, :y, :distance, :points, :warnings
+  # def_delegators :x, :y, :distance, :points, :warnings
 
-  def initialize(document, source, parent_calls, state)
-    @document = document
+  def initialize(source, document)
     @source = source
-    @parent_calls = parent_calls
-    @state = state
-    @base_calls = @calls = []
+    @children = []
+    @transforms = []
 
+    @state = {}
+
+    @document = document
+    
     if id = source.attributes["id"]
       document.elements_by_id[id] = self
     end
   end
 
+  def to_string_etc
+    name = 'root' if self.class == Prawn::SVG::Elements::Root
+    name = source.name if not name
+    name = "???" if not name
+
+    attributes = @attributes.to_s
+
+    "#{name}: #{attributes}"
+  end
+
   def process
     combine_attributes_and_style_declarations
-    parse
 
-    apply_calls_from_standard_attributes
+    parse
+    parse_standard_attributes
+
     apply
 
-    append_calls_to_parent
+    # append_calls_to_parent
   rescue SkipElementQuietly
   rescue SkipElementError => e
-    @document.warnings << e.message
+    # TODO: no output here?
+    puts "Error: #{e.message}"
+    # @document.warnings << e.message
   end
 
   def name
@@ -64,99 +78,100 @@ class Prawn::SVG::Elements::Base
   end
 
   def add_call(name, *arguments)
-    @calls << [name.to_s, arguments, []]
+    # @calls << [name.to_s, arguments, []]
   end
 
-  def add_call_and_enter(name, *arguments)
-    @calls << [name.to_s, arguments, []]
-    @calls = @calls.last.last
-  end
+  # def add_call_and_enter(name, *arguments)
+  #   @calls << [name.to_s, arguments, []]
+  #   @calls = @calls.last.last
+  # end
 
-  def append_calls_to_parent
-    @parent_calls.concat(@base_calls)
-  end
+  # def append_calls_to_parent
+  #   @parent_calls.concat(@base_calls)
+  # end
 
-  def add_calls_from_element(other)
-    @calls.concat other.base_calls
-  end
+  # def add_calls_from_element(other)
+  #   @calls.concat other.base_calls
+  # end
 
   def process_child_elements
     source.elements.each do |elem|
       if element_class = Prawn::SVG::Elements::TAG_CLASS_MAPPING[elem.name.to_sym]
-        add_call "save"
-
-        child = element_class.new(@document, elem, @calls, @state.dup)
+        child = element_class.new(elem, @document)
         child.process
 
-        add_call "restore"
+        @children << child
       else
-        @document.warnings << "Unknown tag '#{elem.name}'; ignoring"
+        # TODO: no output here?
+        puts "Unknown tag '#{elem.name}'; ignoring"
       end
     end
   end
 
-  def apply_calls_from_standard_attributes
-    parse_transform_attribute_and_call
-    parse_opacity_attributes_and_call
-    parse_clip_path_attribute_and_call
-    draw_types = parse_fill_and_stroke_attributes_and_call
-    parse_stroke_attributes_and_call
-    parse_font_attributes_and_call
+  def parse_standard_attributes
+    parse_transform_attribute
     parse_display_attribute
-    apply_drawing_call(draw_types)
+
+    # parse_opacity_attributes_and_call
+    # parse_clip_path_attribute_and_call
+    # draw_types = parse_fill_and_stroke_attributes_and_call
+    # parse_stroke_attributes_and_call
+    # parse_font_attributes_and_call
+    
+    # apply_drawing_call(draw_types)
   end
 
-  def apply_drawing_call(draw_types)
-    if !@state[:disable_drawing] && !container?
-      if draw_types.empty? || @state[:display] == "none"
-        add_call_and_enter("end_path")
-      else
-        add_call_and_enter(draw_types.join("_and_"))
-      end
-    end
-  end
+  # def apply_drawing_call(draw_types)
+  #   if !@state[:disable_drawing] && !container?
+  #     if draw_types.empty? || @state[:display] == "none"
+  #       add_call_and_enter("end_path")
+  #     else
+  #       add_call_and_enter(draw_types.join("_and_"))
+  #     end
+  #   end
+  # end
 
-  def parse_fill_and_stroke_attributes_and_call
-    ["fill", "stroke"].select do |type|
-      case keyword = attribute_value_as_keyword(type)
-      when nil
-      when 'inherit'
-      when 'none'
-        state[type.to_sym] = false
-      else
-        state[type.to_sym] = false
-        color_attribute = keyword == 'currentcolor' ? 'color' : type
-        color = @attributes[color_attribute]
+  # def parse_fill_and_stroke_attributes_and_call
+  #   ["fill", "stroke"].select do |type|
+  #     case keyword = attribute_value_as_keyword(type)
+  #     when nil
+  #     when 'inherit'
+  #     when 'none'
+  #       state[type.to_sym] = false
+  #     else
+  #       state[type.to_sym] = false
+  #       color_attribute = keyword == 'currentcolor' ? 'color' : type
+  #       color = @attributes[color_attribute]
 
-        results = Prawn::SVG::Color.parse(color, document.gradients)
+  #       results = Prawn::SVG::Color.parse(color, document.gradients)
 
-        results.each do |result|
-          case result
-          when Prawn::SVG::Color::Hex
-            state[type.to_sym] = true
-            add_call "#{type}_color", result.value
-            break
-          when Prawn::SVG::Elements::Gradient
-            arguments = result.gradient_arguments(self)
-            if arguments
-              state[type.to_sym] = true
-              add_call "#{type}_gradient", **arguments
-              break
-            end
-          end
-        end
-      end
+  #       results.each do |result|
+  #         case result
+  #         when Prawn::SVG::Color::Hex
+  #           state[type.to_sym] = true
+  #           add_call "#{type}_color", result.value
+  #           break
+  #         when Prawn::SVG::Elements::Gradient
+  #           arguments = result.gradient_arguments(self)
+  #           if arguments
+  #             state[type.to_sym] = true
+  #             add_call "#{type}_gradient", **arguments
+  #             break
+  #           end
+  #         end
+  #       end
+  #     end
 
-      state[type.to_sym]
-    end
-  end
+  #     state[type.to_sym]
+  #   end
+  # end
 
   def clamp(value, min_value, max_value)
     [[value, min_value].max, max_value].min
   end
 
   def combine_attributes_and_style_declarations
-    if @document && @document.css_parser
+    if @document.css_parser
       tag_style = @document.css_parser.find_by_selector(source.name)
       id_style = @document.css_parser.find_by_selector("##{source.attributes["id"]}") if source.attributes["id"]
 
@@ -203,15 +218,15 @@ class Prawn::SVG::Elements::Base
     end
   end
 
-  def parse_points(points_string)
-    points_string.
-      to_s.
-      strip.
-      gsub(/(\d)-(\d)/, '\1 -\2').
-      split(COMMA_WSP_REGEXP).
-      each_slice(2).
-      map {|x, y| [x(x), y(y)]}
-  end
+  # def parse_points(points_string)
+  #   points_string.
+  #     to_s.
+  #     strip.
+  #     gsub(/(\d)-(\d)/, '\1 -\2').
+  #     split(COMMA_WSP_REGEXP).
+  #     each_slice(2).
+  #     map {|x, y| [x(x), y(y)]}
+  # end
 
   def require_attributes(*names)
     missing_attrs = names - attributes.keys

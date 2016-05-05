@@ -4,9 +4,9 @@ class Prawn::SVG::Elements::Circle < Prawn::SVG::Elements::Base
   def parse
     require_attributes 'r'
 
-    @x = x(attributes['cx'] || "0")
-    @y = y(attributes['cy'] || "0")
-    @r = distance(attributes['r'])
+    @x = attributes['cx'].to_f || 0
+    @y = attributes['cy'].to_f || 0
+    @r = attributes['r'].to_f
 
     require_positive_value @r
   end
